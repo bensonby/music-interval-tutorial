@@ -2,7 +2,7 @@ import moviepy.editor as mpy
 
 width = 300
 height = 240
-background = [255, 255, 255]
+background = [0, 255, 255]
 font = "Noto-Sans-CJK-HK"
 font_size = {
     "h1": 18,
@@ -17,7 +17,7 @@ title = mpy.TextClip(
     color=title_color,
 ).set_duration(title_duration)
 
-background = mpy.ColorClip(size=(width, height), color=background)
+background = mpy.ColorClip(size=(width, height), color=background).set_duration(10)
 clips = [title, title]
 output = mpy.concatenate_videoclips(clips)
 add_bg = mpy.CompositeVideoClip([background, output])

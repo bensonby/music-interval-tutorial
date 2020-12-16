@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-pip install -r requirements
+pip install -r requirements.txt
 ```
 
 Set the policy for ImageMagick by commenting the lines in the section of `/etc/ImageMagick-7/policy.xml`
