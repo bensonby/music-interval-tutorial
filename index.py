@@ -89,8 +89,8 @@ def create_example(id, duration):
             fontsize=FONT_SIZE['h3'],
             color='blue',
         )
-        .set_duration(duration - 2 - (len(BETWEEN_NOTES[id]) - i) * 0.2)
-        .set_start(2 + (len(BETWEEN_NOTES[id]) - i) * 0.2)
+        .set_duration(duration - 2 - (len(BETWEEN_NOTES[id]) - i) * 0.1)
+        .set_start(2 + (len(BETWEEN_NOTES[id]) - i) * 0.1)
         .set_position(
             (
                 'right',
@@ -101,29 +101,29 @@ def create_example(id, duration):
         )
         for i, note in enumerate(reversed(BETWEEN_NOTES[id]))
     ]
-    number = mpy.TextClip(
-        NUMBER[id],
-        font=FONT,
-        fontsize=FONT_SIZE['h1'],
-        color='red',
-    ) \
-    .set_duration(duration - 3) \
-    .set_start(3) \
-    .set_position((
-        'center',
-        'bottom',
-    ))
     return mpy.CompositeVideoClip(
         [
             image,
             example_text_from,
             example_text_to,
-        ] + between_notes
-        + [
-            number,
-        ],
+        ] + between_notes,
         size=(EXAMPLE_WIDTH, EXAMPLE_HEIGHT),
     )
+
+
+def create_answer(id, duration):
+    return mpy.TextClip(
+        NUMBER[id],
+        font=FONT,
+        fontsize=FONT_SIZE['h1'],
+        color='red',
+    ) \
+    .set_duration(duration) \
+    .set_start(3) \
+    .set_position((
+        'center',
+        'bottom',
+    ))
 
 def step1():
     duration = DURATION['step1']
@@ -147,7 +147,10 @@ def step1():
 
     width_between_examples = int((WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) / (NUM_EXAMPLES - 1))
     examples = [
-        create_example(id, duration['example'] * (NUM_EXAMPLES - id))
+        mpy.clips_array([
+            [create_example(id, duration['example'] * (NUM_EXAMPLES - id))],
+            [create_answer(id, duration['example'] * (NUM_EXAMPLES - id))],
+        ])
         .set_position((
             MARGIN + id * (EXAMPLE_WIDTH + width_between_examples),
             int(HEIGHT / 2 - EXAMPLE_HEIGHT / 2)
@@ -163,6 +166,20 @@ def step1():
         ] + examples,
         size=SIZE,
     )
+
+def timer():
+    total = DURATION['title'] + DURATION['step1']['total']
+    clips = [
+        mpy.TextClip(
+            str(i),
+            font=FONT,
+            fontsize=FONT_SIZE['body'],
+            color='black'
+        )
+        .set_duration(1)
+        for i in range(total)
+    ]
+    return mpy.concatenate_videoclips(clips)
 
 def background():
     duration = DURATION['title'] + DURATION['step1']['total']
@@ -183,5 +200,6 @@ content = mpy.concatenate_videoclips([
 with_bg = mpy.CompositeVideoClip([
     background(),
     content,
+    timer().set_position(('right', 'bottom')),
 ])
 with_bg.write_videofile('result.mp4', fps=FPS)
