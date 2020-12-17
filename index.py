@@ -174,7 +174,10 @@ def timer():
             str(i),
             font=FONT,
             fontsize=FONT_SIZE['body'],
-            color='black'
+            color='black',
+            align='center',
+            method='caption',
+            size=((50, 50)),
         )
         .set_duration(1)
         for i in range(total)
