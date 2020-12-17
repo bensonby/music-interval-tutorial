@@ -17,8 +17,9 @@ FONT_SIZE = {
     'h3': 18,
     'body': 20,
 }
-EXAMPLE_IMAGE_WIDTH = 114
-EXAMPLE_IMAGE_HEIGHT = 120 # added padding
+NUM_EXAMPLES = 3
+EXAMPLE_WIDTH = 140 # added padding
+EXAMPLE_HEIGHT = 160 # added padding
 PADDING = {
     'h1': 60,
     'h2': 30,
@@ -26,7 +27,7 @@ PADDING = {
     'small': 5,
 }
 MARGIN = 60
-FPS = 5
+FPS = 10
 DURATION = {
     'title': 4,
     'step1': {
@@ -58,10 +59,76 @@ def title():
         ).set_duration(DURATION['title']).set_position('center'),
     ], size=SIZE)
 
+def create_example(id, duration):
+    image = mpy.ImageClip('score/cropped-score-page{}.png'.format(id + 1)) \
+        .set_duration(duration) \
+        .set_start(0) \
+        .set_position((0, 'center'))
+    example_text_from = mpy.TextClip(
+        INTERVAL_FROM[id],
+        font=FONT,
+        fontsize=FONT_SIZE['h2'],
+        color='black',
+    ) \
+        .set_duration(duration - 1) \
+        .set_start(1) \
+        .set_position(('right', 'bottom'))
+    example_text_to = mpy.TextClip(
+        INTERVAL_TO[id],
+        font=FONT,
+        fontsize=FONT_SIZE['h2'],
+        color='black',
+    ) \
+    .set_duration(duration - 1) \
+    .set_start(1) \
+    .set_position(('right', 'top'))
+    between_notes = [
+        mpy.TextClip(
+            note,
+            font=FONT,
+            fontsize=FONT_SIZE['h3'],
+            color='blue',
+        )
+        .set_duration(duration - 2 - (len(BETWEEN_NOTES[id]) - i) * 0.2)
+        .set_start(2 + (len(BETWEEN_NOTES[id]) - i) * 0.2)
+        .set_position(
+            (
+                'right',
+                int(EXAMPLE_HEIGHT / (len(BETWEEN_NOTES[id]) + 3) * (i + 1.5))
+                # original it is len + 2, and i + 1
+                # changed the values for layout adjustment
+            )
+        )
+        for i, note in enumerate(reversed(BETWEEN_NOTES[id]))
+    ]
+    number = mpy.TextClip(
+        NUMBER[id],
+        font=FONT,
+        fontsize=FONT_SIZE['h1'],
+        color='red',
+    ) \
+    .set_duration(duration - 3) \
+    .set_start(3) \
+    .set_position((
+        'center',
+        'bottom',
+    ))
+    return mpy.CompositeVideoClip(
+        [
+            image,
+            example_text_from,
+            example_text_to,
+        ] + between_notes
+        + [
+            number,
+        ],
+        size=(EXAMPLE_WIDTH, EXAMPLE_HEIGHT),
+    )
+
 def step1():
     duration = DURATION['step1']
-    examples_duration = duration['total'] - duration['heading'] - duration['description']
-    examples_start = duration['heading'] + duration['description']
+    example_start = duration['heading'] + duration['description']
+    examples_duration = NUM_EXAMPLES * duration['example']
     heading = mpy.TextClip(
         'Step 1: Count',
         font=FONT,
@@ -77,88 +144,23 @@ def step1():
         .set_duration(duration['total'] - duration['heading']) \
         .set_start(duration['heading']) \
         .set_position(('center', MARGIN + PADDING['h1']))
-    example_images = [
-        mpy.ImageClip('score/cropped-score-page{}.png'.format(id + 1))
+
+    width_between_examples = int((WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) / (NUM_EXAMPLES - 1))
+    examples = [
+        create_example(id, duration['example'] * (NUM_EXAMPLES - id))
+        .set_position((
+            MARGIN + id * (EXAMPLE_WIDTH + width_between_examples),
+            int(HEIGHT / 2 - EXAMPLE_HEIGHT / 2)
+        ))
+        .set_start(example_start + id * duration['example'])
         .set_duration(examples_duration - id * duration['example'])
-        .set_start(examples_start + id * duration['example'])
-        .set_position((int(WIDTH / 3 * id) + PADDING['h2'], 'center'))
-        for id in [0, 1, 2]
-    ]
-    example_text_from = [
-        mpy.TextClip(
-            INTERVAL_FROM[id],
-            font=FONT,
-            fontsize=FONT_SIZE['h2'],
-            color='black',
-        )
-        .set_duration(examples_duration - id * duration['example'] - 1)
-        .set_start(examples_start + id * duration['example'] + 1)
-        .set_position((
-            int(WIDTH / 3 * id) + EXAMPLE_IMAGE_WIDTH + PADDING['h2'],
-            int(HEIGHT / 2 + EXAMPLE_IMAGE_HEIGHT / 2) - PADDING['h3']
-        ))
-        for id in [0, 1, 2]
-    ]
-    example_text_to = [
-        mpy.TextClip(
-            INTERVAL_TO[id],
-            font=FONT,
-            fontsize=FONT_SIZE['h2'],
-            color='black',
-        )
-        .set_duration(examples_duration - id * duration['example'] - 1)
-        .set_start(examples_start + id * duration['example'] + 1)
-        .set_position((
-            int(WIDTH / 3 * id) + EXAMPLE_IMAGE_WIDTH + PADDING['h2'],
-            int(HEIGHT / 2 - EXAMPLE_IMAGE_HEIGHT / 2) - PADDING['h3']
-        ))
-        for id in [0, 1, 2]
-    ]
-    between_notes = [[
-            mpy.TextClip(
-                note,
-                font=FONT,
-                fontsize=FONT_SIZE['h3'],
-                color='blue',
-            )
-            .set_duration(examples_duration - id * duration['example'] - 2
-                - (len(BETWEEN_NOTES[id]) - i) * 0.2)
-            .set_start(examples_start + id * duration['example'] + 2
-                + (len(BETWEEN_NOTES[id]) - i) * 0.2)
-            .set_position((
-                int(WIDTH / 3 * id) + EXAMPLE_IMAGE_WIDTH + PADDING['h2'] + PADDING['small'],
-                int(HEIGHT / 2 - EXAMPLE_IMAGE_HEIGHT / 2) - PADDING['h3']
-                + int(EXAMPLE_IMAGE_HEIGHT * (i + 1) / (len(BETWEEN_NOTES[id]) + 1))
-                + PADDING['small']
-            ))
-            for i, note in enumerate(reversed(BETWEEN_NOTES[id]))
-        ]
-        for id in [0, 1, 2]
-    ]
-    numbers = [
-        mpy.TextClip(
-            NUMBER[id],
-            font=FONT,
-            fontsize=FONT_SIZE['h1'],
-            color='red',
-        )
-        .set_duration(examples_duration - id * duration['example'] - 3)
-        .set_start(examples_start + id * duration['example'] + 3)
-        .set_position((
-            int(WIDTH / 3 * id + EXAMPLE_IMAGE_WIDTH / 2 ),
-            int(HEIGHT / 2 + EXAMPLE_IMAGE_HEIGHT / 2) + PADDING['h1'],
-        ))
-        for id in [0, 1, 2]
+        for id in range(NUM_EXAMPLES)
     ]
     return mpy.CompositeVideoClip(
         [
             heading,
             description,
-        ] + example_images
-        + example_text_from
-        + example_text_to
-        + flatten(between_notes)
-        + numbers,
+        ] + examples,
         size=SIZE,
     )
 
