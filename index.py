@@ -54,6 +54,16 @@ BETWEEN_NOTES = [
 NUMBER = ['3rd', '5th', '7th']
 
 STYLE = {
+    'heading': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h1'],
+        'color': 'black'
+    },
+    'description': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['body'],
+        'color': 'black',
+    },
     'accidental_inactive': {
         'font': FONT,
         'fontsize': FONT_SIZE['h3'],
@@ -77,6 +87,16 @@ STYLE = {
         'align': 'center',
         'method': 'caption',
         'size': FONT_BOX['note'],
+    },
+    'answer': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h1'],
+        'color': 'red',
+    },
+    'answer_small': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h3'],
+        'color': 'red',
     },
 }
 
@@ -194,38 +214,53 @@ def create_answer(id, duration):
     count = len(BETWEEN_NOTES[id])
     return mpy.TextClip(
         NUMBER[id],
-        font=FONT,
-        fontsize=FONT_SIZE['h1'],
-        color='red',
+        **STYLE['answer'],
     ) \
-    .set_duration(duration) \
-    .set_start(2 + count * 0.1 + (count + 2) * 0.15 + 1.5) \
-    .set_position((
-        'center',
-        'bottom',
-    ))
+        .set_duration(duration) \
+        .set_start(2 + count * 0.1 + (count + 2) * 0.15 + 1.5) \
+        .set_position((
+            'center',
+            'bottom',
+        ))
 
-def step1():
+def create_compound(id, duration):
+    if id in [0, 1]:
+        return empty_clip()
+    count = len(BETWEEN_NOTES[id])
+    return mpy.TextClip(
+        'Compound',
+        **STYLE['answer_small']
+    ) \
+        .set_duration(duration) \
+        .set_start(2 + count * 0.1 + (count + 2) * 0.15 + 1.5) \
+        .set_position((
+            'center',
+            'bottom',
+        ))
+
+
+def main():
     duration = DURATION['step1']
     example_start = duration['heading'] + duration['description']
     examples_duration = NUM_EXAMPLES * duration['example']
     heading = mpy.TextClip(
         'Step 1: Count',
-        font=FONT,
-        fontsize=FONT_SIZE['h1'],
-        color='black'
-    ).set_duration(duration['total']).set_position(('center', MARGIN))
+        **STYLE['heading'],
+    ) \
+        .set_duration(duration['total']) \
+        .set_position(('center', MARGIN))
     description = mpy.TextClip(
         'Count the number of notes (inclusive) ignoring accidentals',
-        font=FONT,
-        fontsize=FONT_SIZE['body'],
-        color='black',
+        **STYLE['description'],
     ) \
         .set_duration(duration['total'] - duration['heading']) \
         .set_start(duration['heading']) \
         .set_position(('center', MARGIN + PADDING['h1']))
 
-    width_between_examples = int((WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) / (NUM_EXAMPLES - 1))
+    width_between_examples = int(
+        (WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) /
+        (NUM_EXAMPLES - 1)
+    )
     dur = lambda id: duration['example'] * (NUM_EXAMPLES - id)
     examples = [
         mpy.clips_array([
@@ -236,6 +271,11 @@ def step1():
             ],
             [
                 create_answer(id, dur(id)),
+                empty_clip(), # dummy clip
+                empty_clip(), # dummy clip
+            ],
+            [
+                create_compound(id, dur(id)),
                 empty_clip(), # dummy clip
                 empty_clip(), # dummy clip
             ],
@@ -287,7 +327,7 @@ def create_score_image():
 # create_score_image()
 content = mpy.concatenate_videoclips([
     title(),
-    step1(),
+    main(),
 ])
 with_bg = mpy.CompositeVideoClip([
     background(),
