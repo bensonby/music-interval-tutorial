@@ -19,8 +19,9 @@ FONT_SIZE = {
 }
 FONT_BOX = {
     'timer': (50, 50),
-    'note': (50, 30),
+    'note': (20, 30),
     'count': (14, 30),
+    'accidental': (12, 20),
 }
 NUM_EXAMPLES = 3
 EXAMPLE_WIDTH = 150 # added padding
@@ -52,6 +53,33 @@ BETWEEN_NOTES = [
 ]
 NUMBER = ['3rd', '5th', '7th']
 
+STYLE = {
+    'accidental_inactive': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h3'],
+        'color': 'gray',
+        'align': 'WEST',
+        'method': 'caption',
+        # 'size': # set accordingly
+    },
+    'note': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h2'],
+        'color': 'black',
+        'align': 'center',
+        'method': 'caption',
+        'size': FONT_BOX['note'],
+    },
+    'note_between': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['h2'],
+        'color': 'blue',
+        'align': 'center',
+        'method': 'caption',
+        'size': FONT_BOX['note'],
+    },
+}
+
 def flatten(l): # flatten a list
     return [x for sublist in l for x in sublist]
 
@@ -72,42 +100,18 @@ def create_example(id, duration):
         .set_duration(duration) \
         .set_start(0) \
         .set_position((0, 'center'))
-    note_from = mpy.TextClip(
-        INTERVAL_FROM[id],
-        font=FONT,
-        fontsize=FONT_SIZE['h2'],
-        color='black',
-        align='center',
-        method='caption',
-        size=FONT_BOX['note'],
-    ) \
+    note_from = mpy.TextClip(INTERVAL_FROM[id][0], **STYLE['note']) \
         .set_duration(duration - 1) \
         .set_start(1) \
         .set_position(('right', 'bottom'))
-    note_to = mpy.TextClip(
-        INTERVAL_TO[id],
-        font=FONT,
-        fontsize=FONT_SIZE['h2'],
-        color='black',
-        align='center',
-        method='caption',
-        size=FONT_BOX['note'],
-    ) \
-    .set_duration(duration - 1) \
-    .set_start(1) \
-    .set_position(('right', 'top'))
+    note_to = mpy.TextClip(INTERVAL_TO[id][0], **STYLE['note']) \
+        .set_duration(duration - 1) \
+        .set_start(1) \
+        .set_position(('right', 'top'))
 
     notes_vertical_gap = int((EXAMPLE_HEIGHT - (len(BETWEEN_NOTES[id]) + 2) * FONT_BOX['note'][1]) / (len(BETWEEN_NOTES[id]) + 1))
     between_notes = [
-        mpy.TextClip(
-            note,
-            font=FONT,
-            fontsize=FONT_SIZE['h2'],
-            color='blue',
-            align='center',
-            method='caption',
-            size=FONT_BOX['note'],
-        )
+        mpy.TextClip(note, **STYLE['note_between'])
         .set_duration(duration - 2 - (len(BETWEEN_NOTES[id]) - i) * 0.1)
         .set_start(2 + (len(BETWEEN_NOTES[id]) - i) * 0.1)
         .set_position(
@@ -127,7 +131,7 @@ def create_example(id, duration):
         size=(EXAMPLE_WIDTH, EXAMPLE_HEIGHT),
     )
 
-def create_step1_count(id, duration):
+def create_count(id, duration):
     count = len(BETWEEN_NOTES[id])
     notes_vertical_gap = int((EXAMPLE_HEIGHT - (count + 2) * FONT_BOX['count'][1]) / (count + 1))
     count_numbers = [
@@ -151,6 +155,40 @@ def create_step1_count(id, duration):
         for i in range(1, count + 3)
     ]
     return mpy.CompositeVideoClip(count_numbers, size=(FONT_BOX['count'][0], EXAMPLE_HEIGHT))
+
+def create_accidentals(id, duration):
+    text_from = INTERVAL_FROM[id][1:]
+    text_to = INTERVAL_TO[id][1:]
+    width = max(len(text_from), len(text_to)) * FONT_BOX['accidental'][0]
+    size = (width, FONT_BOX['note'][1])
+    if text_from:
+        accidental_from = mpy.TextClip(text_from,
+            **STYLE['accidental_inactive'],
+            size=size,
+        ) \
+            .set_duration(duration - 1) \
+            .set_start(1) \
+            .set_position(('right', 'bottom'))
+    else:
+        accidental_from = None
+    if text_to:
+        accidental_to = mpy.TextClip(text_to,
+            **STYLE['accidental_inactive'],
+            size=size,
+        ) \
+            .set_duration(duration - 1) \
+            .set_start(1) \
+            .set_position(('right', 'top'))
+    else:
+        accidental_to = None
+    return mpy.CompositeVideoClip(
+        [
+            accidental_from or empty_clip(),
+            accidental_to or empty_clip(),
+        ],
+        size=(max(1, width), EXAMPLE_HEIGHT),
+    )
+
 
 def create_answer(id, duration):
     count = len(BETWEEN_NOTES[id])
@@ -188,15 +226,18 @@ def step1():
         .set_position(('center', MARGIN + PADDING['h1']))
 
     width_between_examples = int((WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) / (NUM_EXAMPLES - 1))
+    dur = lambda id: duration['example'] * (NUM_EXAMPLES - id)
     examples = [
         mpy.clips_array([
             [
-                create_example(id, duration['example'] * (NUM_EXAMPLES - id)),
-                create_step1_count(id, duration['example'] * (NUM_EXAMPLES - id)),
+                create_example(id, dur(id)),
+                create_accidentals(id, dur(id)),
+                create_count(id, dur(id)),
             ],
             [
-                create_answer(id, duration['example'] * (NUM_EXAMPLES - id)),
-                empty_clip(), # dummy clip since each nested list needs to be same size
+                create_answer(id, dur(id)),
+                empty_clip(), # dummy clip
+                empty_clip(), # dummy clip
             ],
         ])
         .set_position((
@@ -243,7 +284,7 @@ def create_score_image():
         os.system('convert {} -define png:color-type=2 -trim {}'.format(path, path.replace('/score', '/cropped-score'))) # use colorspace RGB to workaround issue
         # https://github.com/Zulko/moviepy/issues/623
 
-create_score_image()
+# create_score_image()
 content = mpy.concatenate_videoclips([
     title(),
     step1(),
