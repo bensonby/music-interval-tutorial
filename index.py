@@ -20,11 +20,13 @@ FONT_SIZE = {
 FONT_BOX = {
     'timer': (50, 50),
     'note': (20, 30),
-    'count': (14, 30),
+    'scale_note': (40, 30),
+    'count': (20, 30),
     'accidental': (12, 20),
 }
 NUM_EXAMPLES = 3
 EXAMPLE_WIDTH = 150 # added padding
+EXAMPLE_WIDTH_FULL = EXAMPLE_WIDTH + FONT_BOX['count'][0] + FONT_BOX['scale_note'][0] + FONT_BOX['accidental'][0] * 2  # including outside clips`
 EXAMPLE_HEIGHT = 160 # added padding
 PADDING = {
     'h1': 60,
@@ -32,8 +34,12 @@ PADDING = {
     'h3': 20,
     'small': 5,
 }
-MARGIN = 60
-FPS = 15
+MARGIN = 30
+FPS = 8
+WIDTH_BETWEEN_EXAMPLES = int(
+    (WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH_FULL) /
+    (NUM_EXAMPLES - 1)
+)
 DURATION = {
     'title': 4,
     'step1': {
@@ -43,9 +49,10 @@ DURATION = {
         'example': 6,
     },
     'step2': {
-        'total': 5,
+        'total': 15,
         'heading': 2,
         'description': 3,
+        'example': 4,
     },
 }
 DURATION_TOTAL = DURATION['title'] + DURATION['step1']['total'] \
@@ -54,14 +61,25 @@ DURATION_CONTENT = DURATION_TOTAL - DURATION['title']
 # EXAMPLES
 INTERVAL_FROM = ['D', 'Gbb', 'A#']
 INTERVAL_TO = ['F', 'Db', 'G']
+ACCIDENTAL_LENGTH = [0, 2, 1]
 BETWEEN_NOTES = [
     ['E'],
     ['A', 'B', 'C'],
     ['B', 'C', 'D', 'E', 'F'],
 ]
 NUMBER = ['3rd', '5th', '7th']
+SCALE_NOTES = [
+    ['D', 'E', 'F#'],
+    ['F', 'G', 'A', 'Bb', 'C'],
+    ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A'],
+]
 
 STYLE = {
+    'empty': {
+        'font': FONT,
+        'fontsize': 1,
+        'color': 'white',
+    },
     'heading': {
         'font': FONT,
         'fontsize': FONT_SIZE['h1'],
@@ -112,7 +130,14 @@ def flatten(l): # flatten a list
     return [x for sublist in l for x in sublist]
 
 def empty_clip():
-    return mpy.TextClip(' ', font=FONT, fontsize=1, color='white')
+    return mpy.TextClip(' ', **STYLE['empty'])
+
+def empty_clip_with_size(size):
+    return mpy.TextClip(' ',
+        **STYLE['empty'],
+        method='caption',
+        size=size,
+    )
 
 def title():
     return mpy.CompositeVideoClip([mpy.TextClip(
@@ -182,7 +207,7 @@ def create_count(id):
 def create_accidentals(id):
     text_from = INTERVAL_FROM[id][1:]
     text_to = INTERVAL_TO[id][1:]
-    width = max(len(text_from), len(text_to)) * FONT_BOX['accidental'][0]
+    width = ACCIDENTAL_LENGTH[id] * FONT_BOX['accidental'][0]
     size = (width, FONT_BOX['note'][1])
     if text_from:
         accidental_from = mpy.TextClip(text_from,
@@ -210,8 +235,34 @@ def create_accidentals(id):
         size=(max(1, width), EXAMPLE_HEIGHT),
     )
 
-def create_scale(id, duration):
-    pass
+def create_scale(id):
+    count = len(SCALE_NOTES[id])
+    # start_offset = example_start + id * duration['step1']['example']
+    notes_vertical_gap = int((EXAMPLE_HEIGHT - count * FONT_BOX['scale_note'][1]) / (count - 1))
+    scales = [
+        mpy.TextClip(
+            SCALE_NOTES[id][i],
+            font=FONT,
+            fontsize=FONT_SIZE['h3'],
+            color='green',
+            align='center',
+            method='caption',
+            size=FONT_BOX['scale_note'],
+        )
+        .set_start(0.5 + 0.15 * i)
+        .set_position(
+            (
+                'center',
+                FONT_BOX['note'][1] * (count - i - 1) + notes_vertical_gap * (count - i - 1),
+            )
+        )
+        for i, note in enumerate(SCALE_NOTES[id])
+    ]
+    return mpy.CompositeVideoClip(
+        scales,
+        size=(FONT_BOX['note'][0], EXAMPLE_HEIGHT)
+    ) \
+        .set_end(DURATION_CONTENT) \
 
 def create_answer(id):
     count = len(BETWEEN_NOTES[id])
@@ -280,10 +331,6 @@ def main():
     duration = DURATION['step1']
     example_start = duration['heading'] + duration['description']
     examples_duration = NUM_EXAMPLES * duration['example']
-    width_between_examples = int(
-        (WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH) /
-        (NUM_EXAMPLES - 1)
-    )
     examples = [
         mpy.clips_array([
             [
@@ -303,7 +350,7 @@ def main():
             ],
         ])
         .set_position((
-            MARGIN + id * (EXAMPLE_WIDTH + width_between_examples),
+            MARGIN + id * (EXAMPLE_WIDTH_FULL + WIDTH_BETWEEN_EXAMPLES),
             int(HEIGHT / 2 - EXAMPLE_HEIGHT / 2)
         ))
         .set_start(example_start + id * duration['example'])
@@ -314,7 +361,22 @@ def main():
         [
             create_heading().set_position(('center', MARGIN)),
             create_description().set_position(('center', MARGIN + PADDING['h1'])),
-        ] + examples,
+        ] + examples
+        + [
+            create_scale(id)
+                .set_start(DURATION['step1']['total'] + id * DURATION['step2']['example'])
+                .set_end(DURATION_CONTENT)
+                .set_position((
+                    MARGIN
+                        + id * EXAMPLE_WIDTH_FULL
+                        + EXAMPLE_WIDTH
+                        + FONT_BOX['count'][0]
+                        + ACCIDENTAL_LENGTH[id] * FONT_BOX['accidental'][0]
+                        + id * WIDTH_BETWEEN_EXAMPLES,
+                    int(HEIGHT / 2 - EXAMPLE_HEIGHT / 2)
+                ))
+            for id in range(NUM_EXAMPLES)
+        ],
         size=SIZE,
     )
 
