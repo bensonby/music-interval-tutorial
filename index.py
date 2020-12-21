@@ -402,11 +402,11 @@ def main():
 def timer():
     clips = [
         mpy.TextClip(
-            str(i),
+            '{}:{:02d} '.format(str(int(i / 60)), i % 60),
             font=FONT,
             fontsize=FONT_SIZE['body'],
             color='black',
-            align='center',
+            align='EAST',
             method='caption',
             size=FONT_BOX['timer'],
         )
