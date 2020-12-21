@@ -16,6 +16,7 @@ FONT_SIZE = {
     'h2': 24,
     'h3': 18,
     'body': 20,
+    'small': 15,
 }
 FONT_BOX = {
     'timer': (50, 50),
@@ -29,12 +30,12 @@ EXAMPLE_WIDTH = 150 # added padding
 EXAMPLE_WIDTH_FULL = EXAMPLE_WIDTH + FONT_BOX['count'][0] + FONT_BOX['scale_note'][0] + FONT_BOX['accidental'][0] * 2  # including outside clips`
 EXAMPLE_HEIGHT = 160 # added padding
 PADDING = {
-    'h1': 60,
+    'h1': 45,
     'h2': 30,
     'h3': 20,
     'small': 5,
 }
-MARGIN = 30
+MARGIN = 20
 FPS = 8
 WIDTH_BETWEEN_EXAMPLES = int(
     (WIDTH - MARGIN * 2 - NUM_EXAMPLES * EXAMPLE_WIDTH_FULL) /
@@ -94,6 +95,11 @@ STYLE = {
         'font': FONT,
         'fontsize': FONT_SIZE['body'],
         'color': 'black',
+    },
+    'remarks': {
+        'font': FONT,
+        'fontsize': FONT_SIZE['small'],
+        'color': 'gray',
     },
     'accidental_inactive': {
         'font': FONT,
@@ -346,6 +352,35 @@ def create_description():
         description3,
     ])
 
+def create_remarks():
+    empty1 = empty_clip().set_duration(DURATION['step1']['heading'])
+    empty2 = empty_clip().set_duration(DURATION['step2']['heading'])
+    empty3 = empty_clip().set_duration(DURATION['step3']['heading'])
+    remarks1 = mpy.TextClip(
+        '1 is unison | 8 is octave | Add "Compound" for more than 8',
+        **STYLE['remarks'],
+    ) \
+        .set_duration(DURATION['step1']['total'] - DURATION['step1']['heading'])
+    remarks2 = mpy.TextClip(
+        'Gbb is same as F | A# is same as Bb',
+        **STYLE['remarks'],
+    ) \
+        .set_duration(DURATION['step2']['total'] - DURATION['step2']['heading'])
+    remarks3 = mpy.TextClip(
+        '1458 is perfect | diminished -> perfect -> augmented\n' +
+        '2367 is major | diminished -> minor -> major -> augmented',
+        **STYLE['remarks'],
+    ) \
+        .set_duration(DURATION['step3']['total'] - DURATION['step3']['heading'])
+    return mpy.concatenate_videoclips([
+        empty1,
+        remarks1,
+        empty2,
+        remarks2,
+        empty3,
+        remarks3,
+    ])
+
 def main():
     duration = DURATION['step1']
     example_start = duration['heading'] + duration['description']
@@ -380,6 +415,7 @@ def main():
         [
             create_heading().set_position(('center', MARGIN)),
             create_description().set_position(('center', MARGIN + PADDING['h1'])),
+            create_remarks().set_position(('center', MARGIN + PADDING['h1'] + PADDING['h3'])),
         ] + examples
         + [
             create_scale(id)
