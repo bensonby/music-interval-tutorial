@@ -54,9 +54,14 @@ DURATION = {
         'description': 3,
         'example': 4,
     },
+    'step3': {
+        'total': 15,
+        'heading': 2,
+        'description': 3,
+    },
 }
 DURATION_TOTAL = DURATION['title'] + DURATION['step1']['total'] \
-    + DURATION['step2']['total']
+    + DURATION['step2']['total'] + DURATION['step3']['total']
 DURATION_CONTENT = DURATION_TOTAL - DURATION['title']
 # EXAMPLES
 INTERVAL_FROM = ['D', 'Gbb', 'A#']
@@ -302,14 +307,21 @@ def create_heading():
         **STYLE['heading'],
     ) \
         .set_duration(DURATION['step2']['total'])
+    heading3 = mpy.TextClip(
+        'Step 3: Compare',
+        **STYLE['heading'],
+    ) \
+        .set_duration(DURATION['step3']['total'])
     return mpy.concatenate_videoclips([
         heading1,
         heading2,
+        heading3,
     ])
 
 def create_description():
     empty1 = empty_clip().set_duration(DURATION['step1']['heading'])
     empty2 = empty_clip().set_duration(DURATION['step2']['heading'])
+    empty3 = empty_clip().set_duration(DURATION['step3']['heading'])
     description1 = mpy.TextClip(
         'Count the number of notes (inclusive) ignoring accidentals',
         **STYLE['description'],
@@ -320,11 +332,18 @@ def create_description():
         **STYLE['description'],
     ) \
         .set_duration(DURATION['step2']['total'] - DURATION['step2']['heading'])
+    description3 = mpy.TextClip(
+        'Compare the major scale note with the top note',
+        **STYLE['description'],
+    ) \
+        .set_duration(DURATION['step3']['total'] - DURATION['step3']['heading'])
     return mpy.concatenate_videoclips([
         empty1,
         description1,
         empty2,
         description2,
+        empty3,
+        description3,
     ])
 
 def main():
