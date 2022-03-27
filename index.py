@@ -28,10 +28,10 @@ FONT_BOX = {
 }
 MARGIN = 20
 DURATION = {
-    'title': 3,
+    'title': 2,
 }
-DURATION_TOTAL = 15
-FPS = 8
+DURATION_TOTAL = 5
+FPS = 2
 STYLE = {
     'empty': {
         'font': FONT,
@@ -77,15 +77,84 @@ def title():
         ).set_duration(DURATION['title']).set_position('center'),
     ], size=SIZE)
 
-def create_description():
-    '1. Count: Count the number of notes (inclusive) ignoring accidentals'
-    '2. Scale: Write down the major scale of the lower note'
-    '3. Compare the major scale note with the top note'
+def text_heading(text, index):
+    return mpy.TextClip(
+        text,
+        method='caption',
+        size=(800, 70),
+        align='West',
+        font=FONT,
+        fontsize=FONT_SIZE['h1'],
+        color='black',
+    ).set_duration(DURATION_TOTAL).set_position((0, index * 130))
 
-    '1 is unison | 8 is octave | Add "Compound" for more than 8'
-    'Gbb is same as F | A# is same as Bb'
-    '1458 is perfect | diminished -> perfect -> augmented\n'
-    '2367 is major | diminished -> minor -> major -> augmented'
+def text_description(text, index):
+    if index == 2:
+        y = index * 130 + 60
+    else:
+        y = index * 130 + 40
+    return mpy.TextClip(
+        text,
+        method='caption',
+        size=(800, 70),
+        align='West',
+        font=FONT,
+        fontsize=FONT_SIZE['body'],
+        color='black',
+    ).set_duration(DURATION_TOTAL).set_position((15, y))
+
+def text_remark(text, index):
+    if index == 3:
+        y = 2 * 130 + 110
+    else:
+        y = index * 130 + 80
+    if index >= 2:
+        y = y + 40
+
+    return mpy.TextClip(
+        text,
+        method='caption',
+        size=(800, 50),
+        align='West',
+        font=FONT,
+        fontsize=FONT_SIZE['small'],
+        color='black',
+    ).set_duration(DURATION_TOTAL).set_position((15, y))
+
+def description():
+    headings = [
+        'Step 1. Count',
+        'Step 2. Scale',
+        'Step 3. Compare',
+    ]
+    descriptions = [
+        'Count the number of notes (inclusive) ignoring accidentals [denoted as n]',
+        'Find the n-th note in the major scale of the lower note',
+        'Compare this n-th note with the upper note. Same note means PERFECT/MAJOR. Adjust by semi-tone difference:',
+    ]
+
+    remarks = [
+        '1 is unison // 8 is octave // Add "Compound" for more than an octave',
+        'Enharmonic spelling does not matter, i.e. treat E# as F',
+        'n=1/4/5/8:    diminished   <-   PERFECT   ->   augmented',
+        'n=2/3/6/7:    diminished   <-   minor   <-   MAJOR   ->   augmented',
+    ]
+    headings_clips = [text_heading(h, index) for (index, h) in enumerate(headings)]
+    descriptions_clips = [text_description(d, index) for (index, d) in enumerate(descriptions)]
+    remarks_clips = [text_remark(d, index) for (index, d) in enumerate(remarks)]
+    return mpy.CompositeVideoClip([
+        headings_clips[0],
+        descriptions_clips[0],
+        remarks_clips[0],
+        headings_clips[1],
+        descriptions_clips[1],
+        remarks_clips[1],
+        headings_clips[2],
+        descriptions_clips[2],
+        remarks_clips[2],
+        remarks_clips[3],
+    ], size=SIZE)
+        # ).set_duration(DURATION['title']) # .set_position('center')
 
 def timer():
     clips = [
@@ -118,11 +187,13 @@ def main():
 
 content = mpy.concatenate_videoclips([
     title(),
-    # main(),
+    mpy.CompositeVideoClip([
+        description().set_position((40, 220)),
+    ], size=SIZE),
 ])
 with_bg = mpy.CompositeVideoClip([
     background(),
     content,
-    timer().set_position(('right', 'bottom')),
+    timer().set_position(('right', 'top')),
 ])
 with_bg.write_videofile('result.mp4', fps=FPS)
